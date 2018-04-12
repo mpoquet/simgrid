@@ -5,6 +5,7 @@
 
 #include "ptask_L07.hpp"
 #include "surf/surf.hpp"
+#include "src/instr/instr_private.hpp" // TRACE_is_enabled(). FIXME: remove by subscribing tracing to the surf signals
 #include "xbt/config.hpp"
 
 #include <unordered_set>
@@ -80,7 +81,7 @@ double HostL07Model::next_occuring_event(double now)
   return min;
 }
 
-void HostL07Model::update_actions_state(double /*now*/, double delta)
+void HostL07Model::update_actions_state(double now, double delta)
 {
   for (auto it = std::begin(*get_started_action_set()); it != std::end(*get_started_action_set());) {
     L07Action& action = static_cast<L07Action&>(*it);
@@ -128,6 +129,27 @@ void HostL07Model::update_actions_state(double /*now*/, double delta)
           break;
         }
         cnst = action.get_variable()->get_constraint(i);
+      }
+    }
+    // Add traces
+    if (TRACE_is_enabled()) {
+      int n = action.get_variable()->get_number_of_constraint();
+
+      for (int i = 0; i < n; i++){
+        kernel::lmm::Constraint* constraint = action.get_variable()->get_constraint(i);
+        double value = action.get_variable()->get_value() * action.get_variable()->get_constraint_weight(i);
+        simgrid::kernel::resource::Resource* resource = static_cast<simgrid::kernel::resource::Resource*>(constraint->get_id());
+        LinkL07* link = dynamic_cast<LinkL07*>(resource);
+        CpuL07* cpu = dynamic_cast<CpuL07*>(resource);
+
+        if (link)
+        {
+            TRACE_surf_link_set_utilization(link->get_cname(), action.get_category(), value, now, delta);
+        }
+        else if (cpu)
+        {
+            TRACE_surf_host_set_utilization(cpu->get_cname(), action.get_category(), value,  now, delta);
+        }
       }
     }
   }
