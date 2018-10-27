@@ -31,12 +31,16 @@ int PMPI_Init(int *argc, char ***argv)
 {
   xbt_assert(simgrid::s4u::Engine::is_initialized(),
              "Your MPI program was not properly initialized. The easiest is to use smpirun to start it.");
+
+  xbt_assert(*argc > 2, "Expected argc>2, got %d", *argc);
+  const char * instance_id = (*argv)[1];
+  int rank = xbt_str_parse_int((*argv)[2], "Cannot parse rank");
+
   // Init is called only once per SMPI process
   if (not smpi_process()->initializing()){
-    simgrid::smpi::ActorExt::init(argc, argv);
+    simgrid::smpi::ActorExt::init(instance_id, rank);
   }
   if (not smpi_process()->initialized()){
-    int rank = simgrid::s4u::this_actor::get_pid();
     TRACE_smpi_init(rank);
     TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("init"));
     TRACE_smpi_comm_out(rank);
