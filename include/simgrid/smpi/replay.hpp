@@ -6,6 +6,7 @@
 #define SMPI_REPLAY_HPP_
 
 #include "src/smpi/include/smpi_actor.hpp"
+#include "src/smpi/include/smpi_comm.hpp"
 
 #include <boost/algorithm/string/join.hpp>
 #include <xbt/replay.hpp>
@@ -169,12 +170,16 @@ public:
  */
 template <class T> class ReplayAction {
 protected:
-  const std::string name;
-  const aid_t my_proc_id;
+  std::string name;
+  aid_t my_proc_id;
   T args;
 
 public:
-  explicit ReplayAction(std::string name) : name(name), my_proc_id(simgrid::s4u::this_actor::get_pid()) {}
+  explicit ReplayAction(std::string name)
+  {
+    this->name = name;
+    this->my_proc_id = smpi_process()->comm_world()->group()->rank(simgrid::s4u::Actor::self());
+  }
   virtual ~ReplayAction() = default;
 
   void execute(simgrid::xbt::ReplayAction& action)

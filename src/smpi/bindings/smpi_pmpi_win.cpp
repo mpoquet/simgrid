@@ -192,10 +192,10 @@ int PMPI_Win_fence( int assert,  MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_fence"));
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_fence"));
     retval = win->fence(assert);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -221,10 +221,10 @@ int PMPI_Get( void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
             ((not origin_datatype->is_valid()) || (not target_datatype->is_valid()))) {
     retval = MPI_ERR_TYPE;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData("Get", target_rank, origin_datatype->is_replayable()
                                                                                ? origin_count
                                                                                : origin_count * origin_datatype->size(),
@@ -233,7 +233,7 @@ int PMPI_Get( void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
     retval = win->get( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                            target_datatype);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -262,10 +262,10 @@ int PMPI_Rget( void *origin_addr, int origin_count, MPI_Datatype origin_datatype
   } else if(request == nullptr){
     retval = MPI_ERR_REQUEST;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Rget", target_rank,
                            origin_datatype->is_replayable() ? origin_count : origin_count * origin_datatype->size(),
@@ -274,7 +274,7 @@ int PMPI_Rget( void *origin_addr, int origin_count, MPI_Datatype origin_datatype
     retval = win->get( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                            target_datatype, request);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -300,21 +300,21 @@ int PMPI_Put( void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
             ((not origin_datatype->is_valid()) || (not target_datatype->is_valid()))) {
     retval = MPI_ERR_TYPE;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
     int dst_traced = group->actor(target_rank)->get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData("Put", target_rank, origin_datatype->is_replayable()
                                                                                ? origin_count
                                                                                : origin_count * origin_datatype->size(),
                                                        simgrid::smpi::Datatype::encode(origin_datatype)));
-    TRACE_smpi_send(my_proc_id, my_proc_id, dst_traced, SMPI_RMA_TAG, origin_count * origin_datatype->size());
+    TRACE_smpi_send(rank, rank, dst_traced, SMPI_RMA_TAG, origin_count * origin_datatype->size());
 
     retval = win->put( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                            target_datatype);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -343,21 +343,21 @@ int PMPI_Rput( void *origin_addr, int origin_count, MPI_Datatype origin_datatype
   } else if(request == nullptr){
     retval = MPI_ERR_REQUEST;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
     int dst_traced = group->actor(target_rank)->get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Rput", target_rank,
                            origin_datatype->is_replayable() ? origin_count : origin_count * origin_datatype->size(),
                            simgrid::smpi::Datatype::encode(origin_datatype)));
-    TRACE_smpi_send(my_proc_id, my_proc_id, dst_traced, SMPI_RMA_TAG, origin_count * origin_datatype->size());
+    TRACE_smpi_send(rank, rank, dst_traced, SMPI_RMA_TAG, origin_count * origin_datatype->size());
 
     retval = win->put( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                            target_datatype, request);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -385,10 +385,10 @@ int PMPI_Accumulate( void *origin_addr, int origin_count, MPI_Datatype origin_da
   } else if (op == MPI_OP_NULL) {
     retval = MPI_ERR_OP;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Accumulate", target_rank,
                            origin_datatype->is_replayable() ? origin_count : origin_count * origin_datatype->size(),
@@ -396,7 +396,7 @@ int PMPI_Accumulate( void *origin_addr, int origin_count, MPI_Datatype origin_da
     retval = win->accumulate( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                                   target_datatype, op);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -427,10 +427,10 @@ int PMPI_Raccumulate( void *origin_addr, int origin_count, MPI_Datatype origin_d
   } else if(request == nullptr){
     retval = MPI_ERR_REQUEST;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Raccumulate", target_rank,
                            origin_datatype->is_replayable() ? origin_count : origin_count * origin_datatype->size(),
@@ -439,7 +439,7 @@ int PMPI_Raccumulate( void *origin_addr, int origin_count, MPI_Datatype origin_d
     retval = win->accumulate( origin_addr, origin_count, origin_datatype, target_rank, target_disp, target_count,
                                   target_datatype, op, request);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -469,10 +469,10 @@ MPI_Datatype target_datatype, MPI_Op op, MPI_Win win){
   } else if (op == MPI_OP_NULL) {
     retval = MPI_ERR_OP;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Get_accumulate", target_rank,
                            target_datatype->is_replayable() ? target_count : target_count * target_datatype->size(),
@@ -482,7 +482,7 @@ MPI_Datatype target_datatype, MPI_Op op, MPI_Win win){
                                   result_count, result_datatype, target_rank, target_disp,
                                   target_count, target_datatype, op);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -516,10 +516,10 @@ MPI_Datatype target_datatype, MPI_Op op, MPI_Win win, MPI_Request* request){
   } else if(request == nullptr){
     retval = MPI_ERR_REQUEST;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData(
                            "Rget_accumulate", target_rank,
                            target_datatype->is_replayable() ? target_count : target_count * target_datatype->size(),
@@ -529,7 +529,7 @@ MPI_Datatype target_datatype, MPI_Op op, MPI_Win win, MPI_Request* request){
                                   result_count, result_datatype, target_rank, target_disp,
                                   target_count, target_datatype, op, request);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -558,17 +558,17 @@ int PMPI_Compare_and_swap(void* origin_addr, void* compare_addr, void* result_ad
   } else if ((datatype == MPI_DATATYPE_NULL) || (not datatype->is_valid())) {
     retval = MPI_ERR_TYPE;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
     MPI_Group group;
     win->get_group(&group);
-    TRACE_smpi_comm_in(my_proc_id, __func__,
+    TRACE_smpi_comm_in(rank, __func__,
                        new simgrid::instr::Pt2PtTIData("Compare_and_swap", target_rank,
                                                        datatype->is_replayable() ? 1 : datatype->size(),
                                                        simgrid::smpi::Datatype::encode(datatype)));
 
     retval = win->compare_and_swap(origin_addr, compare_addr, result_addr, datatype, target_rank, target_disp);
 
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -582,10 +582,10 @@ int PMPI_Win_post(MPI_Group group, int assert, MPI_Win win){
   } else if (group==MPI_GROUP_NULL){
     retval = MPI_ERR_GROUP;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_post"));
+    int rank = group->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_post"));
     retval = win->post(group,assert);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -599,10 +599,10 @@ int PMPI_Win_start(MPI_Group group, int assert, MPI_Win win){
   } else if (group==MPI_GROUP_NULL){
     retval = MPI_ERR_GROUP;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_start"));
+    int rank = group->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_start"));
     retval = win->start(group,assert);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -614,12 +614,10 @@ int PMPI_Win_complete(MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_complete"));
-
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_complete"));
     retval = win->complete();
-
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -631,12 +629,10 @@ int PMPI_Win_wait(MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_wait"));
-
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_wait"));
     retval = win->wait();
-
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -653,10 +649,9 @@ int PMPI_Win_lock(int lock_type, int rank, int assert, MPI_Win win){
   } else if (rank == MPI_PROC_NULL){
     retval = MPI_SUCCESS;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_lock"));
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_lock"));
     retval = win->lock(lock_type,rank,assert);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -670,10 +665,9 @@ int PMPI_Win_unlock(int rank, MPI_Win win){
   } else if (rank == MPI_PROC_NULL){
     retval = MPI_SUCCESS;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_unlock"));
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_unlock"));
     retval = win->unlock(rank);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -685,10 +679,10 @@ int PMPI_Win_lock_all(int assert, MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_lock_all"));
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_lock_all"));
     retval = win->lock_all(assert);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -700,10 +694,10 @@ int PMPI_Win_unlock_all(MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_unlock_all"));
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_unlock_all"));
     retval = win->unlock_all();
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -717,10 +711,9 @@ int PMPI_Win_flush(int rank, MPI_Win win){
   } else if (rank == MPI_PROC_NULL){
     retval = MPI_SUCCESS;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_flush"));
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_flush"));
     retval = win->flush(rank);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -734,10 +727,9 @@ int PMPI_Win_flush_local(int rank, MPI_Win win){
   } else if (rank == MPI_PROC_NULL){
     retval = MPI_SUCCESS;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_flush_local"));
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_flush_local"));
     retval = win->flush_local(rank);
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -749,10 +741,10 @@ int PMPI_Win_flush_all(MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_flush_all"));
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_flush_all"));
     retval = win->flush_all();
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;
@@ -764,10 +756,10 @@ int PMPI_Win_flush_local_all(MPI_Win win){
   if (win == MPI_WIN_NULL) {
     retval = MPI_ERR_WIN;
   } else {
-    int my_proc_id = simgrid::s4u::this_actor::get_pid();
-    TRACE_smpi_comm_in(my_proc_id, __func__, new simgrid::instr::NoOpTIData("Win_flush_local_all"));
+    int rank = win->group()->rank(simgrid::s4u::Actor::self());
+    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("Win_flush_local_all"));
     retval = win->flush_local_all();
-    TRACE_smpi_comm_out(my_proc_id);
+    TRACE_smpi_comm_out(rank);
   }
   smpi_bench_begin();
   return retval;

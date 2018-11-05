@@ -58,7 +58,8 @@ int PMPI_Init(int *argc, char ***argv)
 int PMPI_Finalize()
 {
   smpi_bench_end();
-  int rank = simgrid::s4u::this_actor::get_pid();
+
+  int rank = smpi_process()->comm_world()->group()->rank(simgrid::s4u::Actor::self());
   TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("finalize"));
 
   smpi_process()->finalize();

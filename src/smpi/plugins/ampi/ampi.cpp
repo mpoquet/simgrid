@@ -79,7 +79,7 @@ namespace ampi {
 int APMPI_Iteration_in(MPI_Comm comm)
 {
   smpi_bench_end();
-  TRACE_Iteration_in(comm->rank() + 1, new simgrid::instr::NoOpTIData("iteration_in")); // implemented on instr_smpi.c
+  TRACE_Iteration_in(comm->rank(), new simgrid::instr::NoOpTIData("iteration_in")); // implemented on instr_smpi.c
   smpi_bench_begin();
   return 1;
 }
@@ -87,7 +87,7 @@ int APMPI_Iteration_in(MPI_Comm comm)
 int APMPI_Iteration_out(MPI_Comm comm)
 {
   smpi_bench_end();
-  TRACE_Iteration_out(comm->rank() + 1, new simgrid::instr::NoOpTIData("iteration_out"));
+  TRACE_Iteration_out(comm->rank(), new simgrid::instr::NoOpTIData("iteration_out"));
   smpi_bench_begin();
   return 1;
 }
@@ -96,7 +96,7 @@ void APMPI_Migrate(MPI_Comm comm)
 {
   smpi_bench_end();
   int my_proc_id = simgrid::s4u::this_actor::get_pid();
-  TRACE_migration_call(comm->rank() + 1, new simgrid::instr::AmpiMigrateTIData(memory_size[my_proc_id]));
+  TRACE_migration_call(comm->rank(), new simgrid::instr::AmpiMigrateTIData(memory_size[my_proc_id]));
   smpi_bench_begin();
 }
 
