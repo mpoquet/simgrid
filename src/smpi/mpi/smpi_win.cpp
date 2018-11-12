@@ -131,11 +131,6 @@ int Win::rank(){
   return rank_;
 }
 
-MPI_Group Win::group()
-{
-  return group_;
-}
-
 MPI_Aint Win::size(){
   return size_;
 }

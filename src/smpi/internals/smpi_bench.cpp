@@ -68,7 +68,7 @@ void smpi_execute(double duration)
   if (duration >= smpi_cpu_threshold) {
     XBT_DEBUG("Sleep for %g to handle real computation time", duration);
     double flops = duration * smpi_host_speed;
-    int rank     = simgrid::s4u::this_actor::get_pid(); // WRONG!
+    int rank     = simgrid::s4u::this_actor::get_pid();
     TRACE_smpi_computing_in(rank, flops);
 
     smpi_execute_flops(flops);
@@ -188,11 +188,8 @@ static unsigned int private_sleep(double secs)
 {
   smpi_bench_end();
 
-  simgrid::smpi::ActorExt* actor_ext = smpi_process();
-  xbt_assert(actor_ext != nullptr);
-
   XBT_DEBUG("Sleep for: %lf secs", secs);
-  int rank = actor_ext->comm_world()->group()->rank(simgrid::s4u::Actor::self());
+  int rank = simgrid::s4u::this_actor::get_pid();
   TRACE_smpi_sleeping_in(rank, secs);
 
   simcall_process_sleep(secs);

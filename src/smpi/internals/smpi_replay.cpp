@@ -413,6 +413,7 @@ void WaitAction::kernel(simgrid::xbt::ReplayAction& action)
   // Must be taken before Request::wait() since the request may be set to
   // MPI_REQUEST_NULL by Request::wait!
   bool is_wait_for_receive = (request->flags() & MPI_REQ_RECV);
+  // TODO: Here we take the rank while we normally take the process id (look for my_proc_id)
   TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::WaitTIData(args.src, args.dst, args.tag));
 
   MPI_Status status;
@@ -709,10 +710,12 @@ void smpi_replay_init(const char * instance_id, int rank, double start_delay_flo
   smpi_process()->mark_as_initialized();
   smpi_process()->set_replaying(true);
 
-  TRACE_smpi_init(rank);
-  TRACE_smpi_computing_init(rank);
-  TRACE_smpi_comm_in(rank, "smpi_replay_run_init", new simgrid::instr::NoOpTIData("init"));
-  TRACE_smpi_comm_out(rank);
+  int my_proc_id = simgrid::s4u::this_actor::get_pid();
+
+  TRACE_smpi_init(my_proc_id);
+  TRACE_smpi_computing_init(my_proc_id);
+  TRACE_smpi_comm_in(my_proc_id, "smpi_replay_run_init", new simgrid::instr::NoOpTIData("init"));
+  TRACE_smpi_comm_out(my_proc_id);
   xbt_replay_action_register("init", [](simgrid::xbt::ReplayAction& action) { simgrid::smpi::replay::InitAction().execute(action); });
   xbt_replay_action_register("finalize", [](simgrid::xbt::ReplayAction& action) { /* nothing to do */ });
   xbt_replay_action_register("comm_size", [](simgrid::xbt::ReplayAction& action) { simgrid::smpi::replay::CommunicatorAction().execute(action); });
@@ -781,12 +784,13 @@ void smpi_replay_main(int rank, const char * trace_filename)
     XBT_INFO("Simulation time %f", smpi_process()->simulated_elapsed());
   }
 
-  TRACE_smpi_comm_in(rank, "smpi_replay_run_finalize", new simgrid::instr::NoOpTIData("finalize"));
+  TRACE_smpi_comm_in(simgrid::s4u::this_actor::get_pid(), "smpi_replay_run_finalize",
+                     new simgrid::instr::NoOpTIData("finalize"));
 
   smpi_process()->finalize();
 
-  TRACE_smpi_comm_out(rank);
-  TRACE_smpi_finalize(rank);
+  TRACE_smpi_comm_out(simgrid::s4u::this_actor::get_pid());
+  TRACE_smpi_finalize(simgrid::s4u::this_actor::get_pid());
 }
 
 /** @brief chain a replay initialization and a replay start */
