@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
   int mult=1;
 
   MPI_Init(&argc, &argv);
-  int maxlen = argc >= 2 ? atoi(argv[1]) : 1;
+  int maxlen = argc >= 4 ? atoi(argv[3]) : 1;
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
