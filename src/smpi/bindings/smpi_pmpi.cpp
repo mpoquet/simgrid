@@ -32,20 +32,29 @@ int PMPI_Init(int *argc, char ***argv)
   xbt_assert(simgrid::s4u::Engine::is_initialized(),
              "Your MPI program was not properly initialized. The easiest is to use smpirun to start it.");
 
-  xbt_assert(*argc > 2, "Expected argc>2, got %d", *argc);
-  const char * instance_id = (*argv)[1];
-  int rank = xbt_str_parse_int((*argv)[2], "Cannot parse rank");
+  const char* default_instance_id = "smpirun";
+  const char* instance_id         = default_instance_id;
+  int rank                        = simgrid::s4u::this_actor::get_pid() + 1;
+
+  // Yes, user can call MPI_INIT(NULL, NULL)...
+  if ((argc != nullptr) && (argv != nullptr)) {
+    if (*argc > 1)
+      instance_id = (*argv)[1];
+    if (*argc > 2)
+      rank = xbt_str_parse_int((*argv)[2], "Cannot parse rank");
+  }
 
   // Init is called only once per SMPI process
   if (not smpi_process()->initializing()){
     simgrid::smpi::ActorExt::init(instance_id, rank);
   }
   if (not smpi_process()->initialized()){
-    TRACE_smpi_init(rank);
-    TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("init"));
-    TRACE_smpi_comm_out(rank);
-    TRACE_smpi_computing_init(rank);
-    TRACE_smpi_sleeping_init(rank);
+    int rank_traced = simgrid::s4u::this_actor::get_pid();
+    TRACE_smpi_init(rank_traced);
+    TRACE_smpi_comm_in(rank_traced, __func__, new simgrid::instr::NoOpTIData("init"));
+    TRACE_smpi_comm_out(rank_traced);
+    TRACE_smpi_computing_init(rank_traced);
+    TRACE_smpi_sleeping_init(rank_traced);
     smpi_bench_begin();
     smpi_process()->mark_as_initialized();
   }
@@ -58,14 +67,13 @@ int PMPI_Init(int *argc, char ***argv)
 int PMPI_Finalize()
 {
   smpi_bench_end();
-
-  int rank = smpi_process()->comm_world()->group()->rank(simgrid::s4u::Actor::self());
-  TRACE_smpi_comm_in(rank, __func__, new simgrid::instr::NoOpTIData("finalize"));
+  int rank_traced = simgrid::s4u::this_actor::get_pid();
+  TRACE_smpi_comm_in(rank_traced, __func__, new simgrid::instr::NoOpTIData("finalize"));
 
   smpi_process()->finalize();
 
-  TRACE_smpi_comm_out(rank);
-  TRACE_smpi_finalize(rank);
+  TRACE_smpi_comm_out(rank_traced);
+  TRACE_smpi_finalize(rank_traced);
   return MPI_SUCCESS;
 }
 
